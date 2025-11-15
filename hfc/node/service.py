@@ -62,7 +62,24 @@ class NodeService:
     def _get_service():
         assert NodeService._instance is not None
         return NodeService._instance
-    
+
+    @staticmethod
+    @rpc.functions.async_execution
+    def ping_node_rpc(target_node_name: str):
+        future = asyncio.Future()
+        
+        async def impl():
+            try:
+                start_time = time.perf_counter()
+                await rpc.rpc_async(target_node_name, lambda: True, timeout=2)
+                end_time = time.perf_counter()
+                future.set_result(end_time - start_time)
+            except Exception as e:
+                future.set_exception(e)
+
+        asyncio.create_task(impl())
+        return future    
+        
     @staticmethod
     @rpc.functions.async_execution
     def update_world_info_rpc(world_info: Dict):
