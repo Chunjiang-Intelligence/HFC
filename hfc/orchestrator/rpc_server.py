@@ -1,7 +1,10 @@
 import asyncio
 import logging
 import torch.distributed.rpc as rpc
-from .service import OrchestratorService
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from .service import OrchestratorService
+
 
 logger = logging.getLogger(__name__)
 
