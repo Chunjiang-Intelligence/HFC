@@ -1,0 +1,9 @@
+transformers
+datasets
+accelerate
+bitsandbytes # (Linux/Windows with NVIDIA GPU only)
+PyYAML
+easydict
+scikit-learn
+tqdm
+wandb
