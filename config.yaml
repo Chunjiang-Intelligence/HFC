@@ -1,56 +1,70 @@
-# ----------------- #
-#  HFC Trainer      #
-#  Configuration    #
-# ----------------- #
+# ----------------------------- #
+#  HFC Trainer - Production    #
+#  Configuration               #
+# ----------------------------- #
 
 # --- Orchestrator Configuration ---
 orchestrator:
-  host: "0.0.0.0"               # 綁定所有網絡接口
-  port: 29500                   # 協調器 RPC 端口
-  min_nodes_to_start: 2         # 開始訓練所需的最少節點數
-  nodes_per_group: 2            # 每個通信組的節點數 (盡可能)
-  heartbeat_interval: 30        # 心跳檢測間隔 (秒)
-  grouping_strategy: "spectral" # 分組策略: "spectral" 或 "random"
+  host: "0.0.0.0"
+  port: 29500
+  min_nodes_to_start: 2
+  nodes_per_group: 2
+  heartbeat_interval: 30
+  grouping_strategy: "spectral"
 
 # --- Node Configuration ---
 node:
-  # 數據集和模型配置 (使用 Hugging Face)
-  model_name_or_path: "gpt2"
-  dataset_name: "wikitext"
-  dataset_config_name: "wikitext-2-raw-v1"
-  max_seq_len: 256
+  # 分佈式訓練基礎配置
+  master_addr_env: "MASTER_ADDR"  # 獲取主節點地址的環境變量
+  master_port_env: "MASTER_PORT"  # 獲取主節點端口的環境變量
+
+  # 模型和數據集
+  model_name_or_path: "meta-llama/Llama-2-7b-hf"
+  dataset_name: "c4"
+  dataset_config_name: "en" # 使用 c4 的 'en' 子集
+  max_seq_len: 1024
+  streaming_dataset: true
+  dataset_buffer_size: 10000
 
   # 訓練超參數
   num_train_epochs: 1
   per_device_train_batch_size: 1
-  gradient_accumulation_steps: 4
-  learning_rate: 5e-5
+  gradient_accumulation_steps: 8
+  learning_rate: 1e-4
   weight_decay: 0.1
   lr_scheduler_type: "cosine"
   warmup_ratio: 0.03
-  max_train_steps: 200
+  max_train_steps: 100000
   gradient_clipping: 1.0
+
+  # FSDP 配置
+  fsdp_strategy: "FULL_SHARD" # FULL_SHARD, SHARD_GRAD_OP, NO_SHARD
+  fsdp_offload_params: false
+  fsdp_auto_wrap_policy: "size_based"
+  fsdp_min_num_params: 1_000_000 # 對於 size_based 策略
+  use_bf16: true
 
   # GaLore 配置
   use_galore: true
-  galore_rank: 128
-  galore_update_proj_gap: 50
+  galore_rank: 1024
+  galore_update_proj_gap: 200
   galore_scale_factor: 0.25
-  
-  # 8-bit AdamW
   use_8bit_adam: true
 
-  # 梯度壓縮 (組間通信)
+  # HFC 梯度壓縮 (用於組間通信)
   use_compression: true
-  compress_top_k_ratio: 0.01 # 只傳輸最重要的 1%
-  compress_quant_bits: 8     # INT8 量化
+  compress_top_k_ratio: 0.01
+  compress_quant_bits: 8
+
+  # 異步 DAG 調度器
+  use_dag_scheduler: true
 
   # 保存和日誌
   output_dir: "./hfc_output"
-  logging_steps: 5
-  save_steps: 100
+  logging_steps: 10
+  save_steps: 1000
   seed: 42
 
 # --- 全局配置 ---
 log_level: "INFO"
-wandb_project: "hfc-llm-training"
+wandb_project: "hfc-production-training"
