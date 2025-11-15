@@ -1,35 +1,37 @@
-import asyncio
 import logging
 import torch.distributed.rpc as rpc
-from typing import TYPE_CHECKING
-if TYPE_CHECKING:
-    from .service import OrchestratorService
-
+import os
 
 logger = logging.getLogger(__name__)
 
-class OrchestratorRPCServer:
-    def __init__(self, service: OrchestratorService, host: str, port: int):
-        self.service = service
-        self.host = host
-        self.port = port
-        self.rpc_backend_options = rpc.TensorPipeRpcBackendOptions(
-            init_method=f'tcp://{self.host}:{self.port + 1}', # Use a different port for setup
-            _transports=["uv"]
-        )
-
-    async def start(self):
-        logger.info(f"Starting Orchestrator RPC server on {self.host}:{self.port}")
+class NodeRPCServer:
+    def __init__(self, service, node_id: str, node_ip: str, node_port: int, orchestrator_host: str, orchestrator_port: int):
+        self.service = service # 接收一个 service 实例
+        self.node_id = node_id
+        self.node_ip = node_ip
+        self.node_port = node_port
+        self.orchestrator_host = orchestrator_host
+        self.orchestrator_port = orchestrator_port
+        
+        self.init_method = f"tcp://{self.orchestrator_host}:{self.orchestrator_port + 1}"
+        
+    def start(self):
+        logger.info(f"Initializing RPC for node {self.node_id} via {self.init_method}")
+        
+        world_size = int(os.environ.get("WORLD_SIZE", "2"))
+        rank = self.node_port - 29600 + 1
+        
         rpc.init_rpc(
-            "orchestrator",
-            rank=0,
-            world_size=1, # Orchestrator is a singleton
-            rpc_backend_options=self.rpc_backend_options
+            self.node_id,
+            rank=rank,
+            world_size=world_size,
+            rpc_backend_options=rpc.TensorPipeRpcBackendOptions(
+                init_method=self.init_method,
+                _transports=["uv"]
+            )
         )
-        logger.info("Orchestrator RPC initialized.")
-        # Start the main service logic in the background
-        asyncio.create_task(self.service.run())
+        logger.info(f"Node {self.node_id} RPC initialized with rank {rank}/{world_size}.")
 
-    async def stop(self):
-        logger.info("Shutting down Orchestrator RPC server.")
+    def stop(self):
+        logger.info(f"Shutting down RPC for node {self.node_id}")
         rpc.shutdown()
