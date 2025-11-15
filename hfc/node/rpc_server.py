@@ -1,6 +1,8 @@
 import logging
 import torch.distributed.rpc as rpc
-from .service import NodeService
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from .service import NodeService
 
 logger = logging.getLogger(__name__)
 
