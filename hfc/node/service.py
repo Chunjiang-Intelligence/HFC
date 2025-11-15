@@ -12,7 +12,6 @@ import functools
 from transformers import AutoConfig, AutoModelForCausalLM, get_scheduler, set_seed
 from tqdm.auto import tqdm
 
-from hfc.node.rpc_server import NodeRPCServer
 from hfc.node.rpc_client import NodeRPCClient
 from hfc.networking.rpc_init import initialize_process_groups
 from hfc.training.galore_optimizer import GaLoreOptimizer
@@ -41,6 +40,9 @@ class NodeService:
         self.orchestrator_host = orchestrator_host
         self.orchestrator_port = orchestrator_port
         
+        self.rpc_server = None # 将由外部注入
+        self.rpc_client = NodeRPCClient(orchestrator_host, orchestrator_port)
+        
         self.world_info: Dict[str, Any] = {}
         self.process_groups: Dict[str, Any] = {}
         self.training_task = None
@@ -59,7 +61,14 @@ class NodeService:
         # HFCCommunicationManager is omitted for simplicity in this final fix
         self._initialized = True
         
+    def set_rpc_server(self, rpc_server):
+        """用于依赖注入的方法"""
+        self.rpc_server = rpc_server
+
     async def start(self):
+        if not self.rpc_server:
+            raise RuntimeError("RPC server has not been set. Call set_rpc_server() before start().")
+            
         self.rpc_server.start()
         await self.rpc_client.register(self.node_id, self.node_ip, self.node_port)
         logger.info(f"Node {self.node_id} started and registered. Waiting for instructions.")
