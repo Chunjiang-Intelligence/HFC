@@ -1,0 +1,56 @@
+# ----------------- #
+#  HFC Trainer      #
+#  Configuration    #
+# ----------------- #
+
+# --- Orchestrator Configuration ---
+orchestrator:
+  host: "0.0.0.0"               # 綁定所有網絡接口
+  port: 29500                   # 協調器 RPC 端口
+  min_nodes_to_start: 2         # 開始訓練所需的最少節點數
+  nodes_per_group: 2            # 每個通信組的節點數 (盡可能)
+  heartbeat_interval: 30        # 心跳檢測間隔 (秒)
+  grouping_strategy: "spectral" # 分組策略: "spectral" 或 "random"
+
+# --- Node Configuration ---
+node:
+  # 數據集和模型配置 (使用 Hugging Face)
+  model_name_or_path: "gpt2"
+  dataset_name: "wikitext"
+  dataset_config_name: "wikitext-2-raw-v1"
+  max_seq_len: 256
+
+  # 訓練超參數
+  num_train_epochs: 1
+  per_device_train_batch_size: 1
+  gradient_accumulation_steps: 4
+  learning_rate: 5e-5
+  weight_decay: 0.1
+  lr_scheduler_type: "cosine"
+  warmup_ratio: 0.03
+  max_train_steps: 200
+  gradient_clipping: 1.0
+
+  # GaLore 配置
+  use_galore: true
+  galore_rank: 128
+  galore_update_proj_gap: 50
+  galore_scale_factor: 0.25
+  
+  # 8-bit AdamW
+  use_8bit_adam: true
+
+  # 梯度壓縮 (組間通信)
+  use_compression: true
+  compress_top_k_ratio: 0.01 # 只傳輸最重要的 1%
+  compress_quant_bits: 8     # INT8 量化
+
+  # 保存和日誌
+  output_dir: "./hfc_output"
+  logging_steps: 5
+  save_steps: 100
+  seed: 42
+
+# --- 全局配置 ---
+log_level: "INFO"
+wandb_project: "hfc-llm-training"
