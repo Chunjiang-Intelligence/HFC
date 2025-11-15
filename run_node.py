@@ -6,8 +6,8 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import argparse
 import asyncio
 from hfc.node.service import NodeService
-from utils.config_loader import load_config
-from utils.logger import setup_logging
+from hfc.utils.config_loader import load_config
+from hfc.utils.logger import setup_logging
 
 def main():
     parser = argparse.ArgumentParser(description="HFC Trainer Node")
