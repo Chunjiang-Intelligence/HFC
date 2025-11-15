@@ -1,0 +1,47 @@
+# --------------------- #
+#  HFC Trainer          #
+#  TEST Configuration   #
+# --------------------- #
+
+orchestrator:
+  host: "127.0.0.1"
+  port: 29500
+  min_nodes_to_start: 2
+  nodes_per_group: 2
+  heartbeat_interval: 5
+  grouping_strategy: "spectral"
+
+node:
+  model_name_or_path: "distilgpt2" # 非常小的模型，82M 參數
+  dataset_name: "wikitext"
+  dataset_config_name: "wikitext-2-raw-v1"
+  max_seq_len: 64
+
+  num_train_epochs: 1
+  per_device_train_batch_size: 1
+  gradient_accumulation_steps: 1
+  learning_rate: 1e-4
+  weight_decay: 0.1
+  lr_scheduler_type: "constant"
+  warmup_ratio: 0
+  max_train_steps: 5 # !!! 只跑 5 步就結束
+  gradient_clipping: 1.0
+
+  use_galore: true
+  galore_rank: 16 # 減小 rank
+  galore_update_proj_gap: 10
+  galore_scale_factor: 0.25
+  
+  use_8bit_adam: false # 在 CPU 上測試時禁用 8-bit Adam
+
+  use_compression: true
+  compress_top_k_ratio: 0.1
+  compress_quant_bits: 8
+
+  output_dir: "./hfc_test_output"
+  logging_steps: 1
+  save_steps: 10
+  seed: 42
+
+log_level: "INFO"
+wandb_project: "hfc-local-test"
