@@ -1,11 +1,12 @@
 import sys
 import os
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '.')))
+
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 import argparse
 import asyncio
 from hfc.node.service import NodeService
+from hfc.node.rpc_server import NodeRPCServer
 from hfc.utils.config_loader import load_config
 from hfc.utils.logger import setup_logging
 
@@ -20,15 +21,29 @@ def main():
     config = load_config(args.config)
     setup_logging(config.log_level)
 
-    orchestrator_host, orchestrator_port = args.orchestrator_addr.split(":")
-    
+    orchestrator_host, orchestrator_port_str = args.orchestrator_addr.split(":")
+    orchestrator_port = int(orchestrator_port_str)
+
     node_service = NodeService(
         config=config.node,
         node_ip=args.node_ip,
         node_port=args.node_port,
         orchestrator_host=orchestrator_host,
-        orchestrator_port=int(orchestrator_port)
+        orchestrator_port=orchestrator_port
     )
+    
+    node_id = f"node_{args.node_ip.replace('.', '_')}_{args.node_port}"
+
+    node_rpc_server = NodeRPCServer(
+        service=node_service,
+        node_id=node_id,
+        node_ip=args.node_ip,
+        node_port=args.node_port,
+        orchestrator_host=orchestrator_host,
+        orchestrator_port=orchestrator_port
+    )
+
+    node_service.set_rpc_server(node_rpc_server)
 
     loop = asyncio.get_event_loop()
     try:
